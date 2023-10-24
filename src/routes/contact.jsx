@@ -1,8 +1,21 @@
-import { Form, useLoaderData } from 'react-router-dom';
-import { getContact } from '../contacts';
+import { Form, useFetcher, useLoaderData } from 'react-router-dom';
+import { getContact, updateContact } from '../contacts';
+
+export async function action({ request, params }) {
+    let formData = await request.formData();
+    return updateContact(params.contactId, {
+        favorite: formData.get('favorite') === "true",
+    });
+}
 
 export async function loader({ params }) {
     const contact = await getContact(params.contactId);
+    if (!contact) {
+        throw new Response('', {
+            status: 404,
+            statusText: 'Not Found'
+        });
+    }
     return { contact };
 }
 
@@ -45,7 +58,7 @@ export default function Contact() {
                                 event.preventDefault()
                             }
                         }}>
-                            <button type="submit">Delete</button>
+                        <button type="submit">Delete</button>
                     </Form>
                 </div>
             </div>
@@ -54,19 +67,25 @@ export default function Contact() {
 }
 
 function Favorite({ contact }) {
+    const fetcher = useFetcher();
     let favorite = contact.favorite
-  return (
-    <Form method="post">
-        <button
-            name="favorite"
-            value={favorite ? "false" : "true"}
-            aria-label={
-                favorite ? 
-                "Remove from favorite" : 
-                "Add to favorite"
-            }>
-            {favorite ? "★" : "☆"}
-        </button>
-    </Form>
-  )
+
+    if (fetcher.formData) {
+        favorite = fetcher.formData.get('favorite') === 'true';
+    }
+
+    return (
+        <fetcher.Form method="post">
+            <button
+                name="favorite"
+                value={favorite ? "false" : "true"}
+                aria-label={
+                    favorite ?
+                        "Remove from favorite" :
+                        "Add to favorite"
+                }>
+                {favorite ? "★" : "☆"}
+            </button>
+        </fetcher.Form>
+    )
 }
